@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const Home: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(1);
@@ -23,7 +24,7 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen  flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="container max-w-5xl mx-auto px-4">
         {/* Üst kısım - Animasyonlu başlık */}
         <div className="cyber-panel relative overflow-hidden h-[60px] mb-8 flex items-center justify-center">
@@ -43,27 +44,31 @@ const Home: React.FC = () => {
         </div>
 
         {/* Alt kısım - İki sütunlu layout */}
-        <div className="flex flex-col md:flex-row gap-8 justify-center items-start">
+        <div className="flex flex-col md:flex-row gap-8">
           {/* Sol sütun - Değişen resimler */}
           <div className="w-full md:w-[500px]">
-            <div className="cyber-frame relative w-full" style={{ height: '450px' }}>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
-                  <img 
-                    key={num}
-                    src={`/images/H${num}.png`}
-                    alt={`Slide ${num}`}
-                    className={`transition-all duration-1000 ${
-                      currentSlide === num
-                        ? 'opacity-100 scale-100 blur-none'
-                        : 'opacity-0 scale-95 blur-md'
-                    }`}
-                  />
-                ))}
-            </div>
+            <ErrorBoundary>
+              <div className="cyber-frame relative w-full" style={{ height: '350px' }}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                    <img 
+                      key={num}
+                      src={`/images/H${num}.png`}
+                      alt={`Slide ${num}`}
+                      className={`absolute max-w-[90%] max-h-[90%] object-contain transition-all duration-1000 ${
+                        currentSlide === num
+                          ? 'opacity-100 scale-100 blur-none'
+                          : 'opacity-0 scale-95 blur-md'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </ErrorBoundary>
           </div>
 
           {/* Sağ sütun - Kartlar */}
-          <div className="w-full md:w-[500px] space-y-4">
+          <div className="flex-1 space-y-6">
             <Link to="/projeler" className="cyber-card hover:scale-105 transition-transform block">
               <h2 className="cyber-heading text-2xl font-semibold mb-2 text-[#0ff]">
                 Projeler
@@ -89,6 +94,6 @@ const Home: React.FC = () => {
       </div>
     </div>
   );
-}
+};
 
 export default Home;

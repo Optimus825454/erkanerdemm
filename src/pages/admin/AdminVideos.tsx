@@ -1,172 +1,170 @@
 import { useState, useEffect } from 'react';
 import { Video } from '../../types';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { videosApi } from '../../services/api';
+import { Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { VideoModal } from '../../components/modals/VideoModal';
 
 export function AdminVideos() {
   const [videos, setVideos] = useState<Video[]>([]);
-  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    embedUrl: '',
-    description: '',
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | undefined>(undefined);
+
+  const fetchVideos = async () => {
+    try {
+      setLoading(true);
+      const data = await videosApi.getAll();
+      setVideos(data);
+      setError('');
+    } catch (err) {
+      setError('Videolar yüklenirken bir hata oluştu');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const storedVideos = localStorage.getItem('videos');
-    if (storedVideos) {
-      setVideos(JSON.parse(storedVideos));
-    }
+    fetchVideos();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newVideo: Video = {
-      id: editingVideo?.id || Date.now().toString(),
-      ...formData,
-      date: editingVideo?.date || new Date().toISOString(),
-    };
-
-    let updatedVideos;
-    if (editingVideo) {
-      updatedVideos = videos.map((v) =>
-        v.id === editingVideo.id ? newVideo : v
-      );
-    } else {
-      updatedVideos = [...videos, newVideo];
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Bu videoyu silmek istediğinizden emin misiniz?')) {
+      return;
     }
 
-    setVideos(updatedVideos);
-    localStorage.setItem('videos', JSON.stringify(updatedVideos));
-    resetForm();
+    try {
+      await videosApi.delete(id);
+      await fetchVideos();
+    } catch (err) {
+      setError('Video silinirken bir hata oluştu');
+      console.error(err);
+    }
   };
 
-  const handleEdit = (video: Video) => {
-    setEditingVideo(video);
-    setFormData({
-      title: video.title,
-      embedUrl: video.embedUrl,
-      description: video.description,
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    const updatedVideos = videos.filter((v) => v.id !== id);
-    setVideos(updatedVideos);
-    localStorage.setItem('videos', JSON.stringify(updatedVideos));
-  };
-
-  const resetForm = () => {
-    setEditingVideo(null);
-    setFormData({
-      title: '',
-      embedUrl: '',
-      description: '',
-    });
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Video Yönetimi</h1>
-      
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Başlık
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Video Embed URL
-            </label>
-            <input
-              type="url"
-              value={formData.embedUrl}
-              onChange={(e) => setFormData({ ...formData, embedUrl: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="https://www.youtube.com/embed/..."
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Açıklama
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              rows={3}
-              required
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {editingVideo ? 'Güncelle' : 'Ekle'}
-            </button>
-            {editingVideo && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-              >
-                İptal
-              </button>
-            )}
-          </div>
-        </div>
-      </form>
-
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Başlık</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarih</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {videos.map((video) => (
-                <tr key={video.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{video.title}</td>
-                  <td className="px-6 py-4">{video.description}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(video.date).toLocaleDateString('tr-TR')}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleEdit(video)}
-                      className="text-blue-600 hover:text-blue-800 mr-2"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(video.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-white">Videolar</h1>
+        <button
+          onClick={() => {
+            setSelectedVideo(undefined);
+            setIsModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          <Plus size={20} />
+          Yeni Video
+        </button>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 text-red-400 p-4 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {videos.map((video) => (
+          <div
+            key={video.id}
+            className="bg-gray-800/50 backdrop-blur-xl border border-gray-700/50 rounded-lg overflow-hidden hover:border-gray-600/50 transition-colors"
+          >
+            <div className="relative">
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                className="w-full h-48 object-cover"
+              />
+              <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/80 text-white text-sm rounded">
+                {video.duration}
+              </div>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">{video.title}</h2>
+                <span className={`px-2 py-1 text-sm rounded ${
+                  video.published
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  {video.published ? 'Yayında' : 'Taslak'}
+                </span>
+              </div>
+              
+              <p className="text-gray-400 line-clamp-3">{video.description}</p>
+              
+              <div className="flex flex-wrap gap-2">
+                {video.tags?.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-1 bg-gray-700/50 text-gray-300 text-sm rounded"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedVideo(video);
+                      setIsModalOpen(true);
+                    }}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    title="Düzenle"
+                  >
+                    <Pencil size={20} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(video.id)}
+                    className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                    title="Sil"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+                <a
+                  href={video.embedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Videoyu Görüntüle"
+                >
+                  <ExternalLink size={20} />
+                </a>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <VideoModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedVideo(undefined);
+        }}
+        onSubmit={async (data) => {
+          if (selectedVideo) {
+            await videosApi.update(selectedVideo.id, data);
+          } else {
+            await videosApi.create(data);
+          }
+          await fetchVideos();
+        }}
+        video={selectedVideo}
+      />
     </div>
   );
 }
