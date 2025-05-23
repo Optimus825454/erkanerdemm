@@ -1,0 +1,23 @@
+{
+  "name": "blog-media-project",
+  "version": "1.0.0",
+  "description": "A project for managing blog posts and media uploads with image optimization.",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "multer": "^1.4.2",
+    "prisma": "^2.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.4.4",
+    "ts-node": "^10.4.0",
+    "@types/node": "^16.11.7",
+    "@types/express": "^4.17.13"
+  },
+  "license": "MIT"
+}
